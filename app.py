@@ -2,7 +2,9 @@
 # Samyuktha Reddy Gurram (Student ID: 20719222)
 # Suyesh Bhatta (Student ID: 20672078)
 
-
+# Thinsg to do:
+# Words ko wapas list
+# Tokenizer
 
 from zipfile import ZipFile
 from bs4 import BeautifulSoup
@@ -28,9 +30,15 @@ for file_name in file_list:
             text = soup.get_text().lower()
             extracted_strings = re.findall(r'[a-z]+', text)
             extracted_strings = set(extracted_strings)
-            index_map[file_name] = extracted_strings
-            
-while True:
+            links = []
+            for link in soup.find_all('a', href=True):
+                links.append(link['href'])
+            index_map[file_name] = {
+                "words": extracted_strings,
+                "links": links
+            }
+print(index_map)
+while False:
     search_key = input('Enter a search key=> ').strip()
     matches = []
     if search_key == '':
