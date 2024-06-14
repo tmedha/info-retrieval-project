@@ -25,7 +25,7 @@ file_directory = 'Jan'
 inverted_index, file_properties, index_map = generate_index(file_directory)
 
 # while True:
-#     search_key = input('Enter a search key=> ').strip()
+#     search_key = input('Enter a search key=> ').strip().lower()
 #     matches = []
 #     if search_key == '':
 #         print('Bye.')
@@ -46,7 +46,7 @@ app = Flask(__name__,
 def home():
     search = request.args.get('search')
     if search:
-        documents = query(search, file_properties, inverted_index)
+        documents = query(search.lower(), file_properties, inverted_index)
         return render_template('home.html', documents=documents)
 
     return render_template('home.html')

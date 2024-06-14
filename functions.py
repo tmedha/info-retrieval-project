@@ -3,14 +3,14 @@ import re
 import math
 import os
 
+stopwords = {'a', 'an', 'the', 'of'}
+
 def generate_index(file_directory):
     file_list = os.listdir(file_directory)
     total_files = len(file_list)
     index_map = {}
     inverted_index = {}
     file_properties = {file_name: {'max_freq': 0, 'doc_vector': 0} for file_name in file_list}
-
-    stopwords = {'a', 'an', 'the', 'of'}
 
     for file_name in file_list:
         file_path = os.path.join(file_directory, file_name)
@@ -149,6 +149,8 @@ def query_phrasal(query, file_properties, inverted_index):
     queries = query.strip('"').split(' ')
     if len(queries) == 1:
         return query_single(queries[0], file_properties, inverted_index)
+    if queries[0] not in inverted_index:
+        return []
     data = inverted_index[queries[0]]
     relevances = {file_name: 0 for file_name in file_properties}
     for file_name in relevances:
@@ -161,6 +163,8 @@ def query_phrasal(query, file_properties, inverted_index):
         for i in range(1, len(queries)):
             previous_word = queries[i-1]
             current_word = queries[i]
+            if current_word in stopwords:
+                continue
             if current_word not in inverted_index or file_name not in inverted_index[current_word]:
                 return []
             for j in range(len(postings)):
@@ -175,14 +179,14 @@ def query_phrasal(query, file_properties, inverted_index):
 
 def query(search_key, file_properties, inverted_index):
     documents = []
-    if ' and ' in search_key:
+    if '"' in search_key:
+        documents = query_phrasal(search_key, file_properties, inverted_index)
+    elif ' and ' in search_key:
         documents = query_and(search_key, file_properties, inverted_index)
     elif ' but ' in search_key:
         documents = query_but(search_key, file_properties, inverted_index)
     elif ' or ' in search_key:
         documents = query_or(search_key, file_properties, inverted_index)
-    elif '"' in search_key:
-        documents = query_phrasal(search_key, file_properties, inverted_index)
     elif ' ' not in search_key:
         documents = query_single(search_key, file_properties, inverted_index)
     else:
