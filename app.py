@@ -10,6 +10,10 @@ from zipfile import ZipFile
 from bs4 import BeautifulSoup
 import os
 import re
+from pprint import pp
+import math
+
+from functions import generate_index, query
 
 
 with ZipFile('Jan.zip', 'r') as zip:
@@ -17,38 +21,17 @@ with ZipFile('Jan.zip', 'r') as zip:
 
 file_directory = 'Jan' 
 
-file_list = os.listdir(file_directory)
-index_map = {}
+inverted_index, file_properties, index_map = generate_index(file_directory)
 
-for file_name in file_list:
-    file_path = os.path.join(file_directory, file_name)
-    
-    if os.path.isfile(file_path):
-        with open(file_path, 'r') as file:
-            content = file.read()
-            soup = BeautifulSoup(content, 'html.parser')
-            text = soup.get_text().lower()
-            extracted_strings = re.findall(r'[a-z]+', text)
-            extracted_strings = set(extracted_strings)
-            links = []
-            for link in soup.find_all('a', href=True):
-                links.append(link['href'])
-            index_map[file_name] = {
-                "words": extracted_strings,
-                "links": links
-            }
-print(index_map)
-while False:
+while True:
     search_key = input('Enter a search key=> ').strip()
     matches = []
     if search_key == '':
         print('Bye.')
         break
-    for file_name in index_map:
-        if search_key in index_map[file_name]:
-            matches.append(file_name)
-    if len(matches) > 0:
-        for file_name in matches:
+    documents = query(search_key, file_properties, inverted_index)
+    if len(documents) > 0:
+        for file_name in documents:
             print('Found a match:', file_name)
     else:
         print('No match.')
