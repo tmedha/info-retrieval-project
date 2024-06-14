@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Engine</title>
+</head>
+<body>
+    <form> 
+        <input type="text" name="search" placeholder="Search">
+        <button type="submit">Search</button>
+    </form>
+    {% if documents %}
+        <ul>
+            {% for result in documents %}
+                <li>{{ result }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>

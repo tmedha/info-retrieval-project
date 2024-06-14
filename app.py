@@ -12,6 +12,7 @@ import os
 import re
 from pprint import pp
 import math
+from flask import Flask, render_template, request
 
 from functions import generate_index, query
 
@@ -23,15 +24,29 @@ file_directory = 'Jan'
 
 inverted_index, file_properties, index_map = generate_index(file_directory)
 
-while True:
-    search_key = input('Enter a search key=> ').strip()
-    matches = []
-    if search_key == '':
-        print('Bye.')
-        break
-    documents = query(search_key, file_properties, inverted_index)
-    if len(documents) > 0:
-        for file_name in documents:
-            print('Found a match:', file_name)
-    else:
-        print('No match.')
+# while True:
+#     search_key = input('Enter a search key=> ').strip()
+#     matches = []
+#     if search_key == '':
+#         print('Bye.')
+#         break
+#     documents = query(search_key, file_properties, inverted_index)
+#     if len(documents) > 0:
+#         for file_name in documents:
+#             print('Found a match:', file_name)
+#     else:
+#         print('No match.')
+
+app = Flask(__name__,
+            static_url_path='', 
+            static_folder='static'
+)
+
+@app.route("/")
+def home():
+    search = request.args.get('search')
+    if search:
+        documents = query(search, file_properties, inverted_index)
+        return render_template('home.html', documents=documents)
+
+    return render_template('home.html')

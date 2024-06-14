@@ -79,6 +79,8 @@ def get_relevant_documents(relevances):
 
 def query_single(query, file_properties, inverted_index):
     relevances = {}
+    if query not in inverted_index:
+        return []
     data = inverted_index[query]
     for file_name in data:
         tfidf = data[file_name]['tfidf']
