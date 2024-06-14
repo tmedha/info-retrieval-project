@@ -77,6 +77,15 @@ def get_relevant_documents(relevances):
             documents.append(document)
     return documents
 
+def get_sorted_relevant_documents(relevances):
+    sorted_documents = list(relevances.items())
+    sorted_documents.sort(key=lambda x: x[1], reverse=True)
+    documents = []
+    for document in sorted_documents:
+        if document[1] > 0:
+            documents.append(document[0])
+    return documents
+
 def query_single(query, file_properties, inverted_index):
     relevances = {}
     if query not in inverted_index:
@@ -100,7 +109,8 @@ def query_vector(query, file_properties, inverted_index):
                 tfidf += inverted_index[word][file_name]['tfidf']
         relevance = (1 / math.sqrt(2)) * (1 / math.sqrt(doc_vector)) * tfidf
         relevances[file_name] = relevance
-    return get_relevant_documents(relevances)
+    print(relevances)
+    return get_sorted_relevant_documents(relevances)
 
 def query_and(query, file_properties, inverted_index):
     queries = query.split(' and ')
@@ -159,7 +169,7 @@ def query_phrasal(query, file_properties, inverted_index):
         doc_vector = file_properties[file_name]['doc_vector']
         tfidf = data[file_name]['tfidf']
         relevance = (1 / math.sqrt(2)) * (1 / math.sqrt(doc_vector)) * tfidf
-        postings = data[file_name]['postings']
+        postings = [*data[file_name]['postings']]
         for i in range(1, len(queries)):
             previous_word = queries[i-1]
             current_word = queries[i]
