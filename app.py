@@ -2,19 +2,10 @@
 # Samyuktha Reddy Gurram (Student ID: 20719222)
 # Suyesh Bhatta (Student ID: 20672078)
 
-# decode utf
-# nltk
-
 from zipfile import ZipFile
-from bs4 import BeautifulSoup
-import os
-import re
-from pprint import pp
-import math
 from flask import Flask, render_template, request
 
 from functions import generate_index, query
-
 
 with ZipFile('Jan.zip', 'r') as zip:
     zip.extractall('.')
