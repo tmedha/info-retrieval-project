@@ -29,7 +29,7 @@ def generate_index(file_directory):
                     "words": extracted_strings,
                     "links": links
                 }
-                for i in re.finditer(r'[a-z]+', content):
+                for i in re.finditer(r'[a-z\']+', text):
                     m = i.group()
                     if m in stopwords:
                         continue
@@ -43,7 +43,6 @@ def generate_index(file_directory):
                         }
                     inverted_index[m][file_name]['freq'] += 1
                     inverted_index[m][file_name]['postings'].append(a)
-    # pp(inverted_index)
 
     for word in inverted_index:
         files = inverted_index[word]
@@ -170,18 +169,22 @@ def query_phrasal(query, file_properties, inverted_index):
         tfidf = data[file_name]['tfidf']
         relevance = (1 / math.sqrt(2)) * (1 / math.sqrt(doc_vector)) * tfidf
         postings = [*data[file_name]['postings']]
+        go_next = False
         for i in range(1, len(queries)):
             previous_word = queries[i-1]
             current_word = queries[i]
-            if current_word in stopwords:
-                continue
-            if current_word not in inverted_index or file_name not in inverted_index[current_word]:
+            if current_word in stopwords or file_name not in inverted_index[current_word]:
+                go_next = True
+                break
+            if current_word not in inverted_index:
                 return []
             for j in range(len(postings)):
                 postings[j] += len(previous_word) + 1
             for posting in postings:
                 if posting not in inverted_index[current_word][file_name]['postings']:
                     postings.remove(posting)
+        if go_next:
+            continue
         if len(postings) > 0:
             relevances[file_name] = relevance
 

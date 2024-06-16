@@ -2,9 +2,8 @@
 # Samyuktha Reddy Gurram (Student ID: 20719222)
 # Suyesh Bhatta (Student ID: 20672078)
 
-# Thinsg to do:
-# Words ko wapas list
-# Tokenizer
+# decode utf
+# nltk
 
 from zipfile import ZipFile
 from bs4 import BeautifulSoup
