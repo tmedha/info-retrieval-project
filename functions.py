@@ -3,32 +3,42 @@ import re
 import math
 import os
 
+# Create a set of stopwords
 stopwords = {'a', 'an', 'the', 'of'}
 
+# Function to generate the inverted index
 def generate_index(file_directory):
+    # Get the list of files in the directory
     file_list = os.listdir(file_directory)
     total_files = len(file_list)
     index_map = {}
+    # Initialize the inverted index and file properties
     inverted_index = {}
     file_properties = {file_name: {'max_freq': 0, 'doc_vector': 0} for file_name in file_list}
 
+    # Iterate through the files
     for file_name in file_list:
         file_path = os.path.join(file_directory, file_name)
         
+        # Read the content of the file
         if os.path.isfile(file_path):
             with open(file_path, 'r') as file:
                 content = file.read()
+                # Parse the content using BeautifulSoup
                 soup = BeautifulSoup(content, 'html.parser')
                 text = soup.get_text().lower()
+                # Extract the words from the text
                 extracted_strings = re.findall(r'[a-z]+', text)
                 extracted_strings = set(extracted_strings)
                 links = []
+                # Extract the links from the text
                 for link in soup.find_all('a', href=True):
                     links.append(link['href'])
                 index_map[file_name] = {
                     "words": extracted_strings,
                     "links": links
                 }
+                # Iterate through the words
                 for i in re.finditer(r'[a-z\']+', text):
                     m = i.group()
                     if m in stopwords:
@@ -36,6 +46,7 @@ def generate_index(file_directory):
                     a, b = i.span()
                     if m not in inverted_index:
                         inverted_index[m] = {}
+                    # Update the inverted index
                     if file_name not in inverted_index[m]:
                         inverted_index[m][file_name] = {
                             'freq': 0,
@@ -58,6 +69,7 @@ def generate_index(file_directory):
             data = files[file_name]
             freq = data['freq']
             max_freq = file_properties[file_name]['max_freq']
+            # Calculate the tfidf
             tfidf = (freq / max_freq) * (math.log(total_files / (df + 1), 2) + 1)
             data['tfidf'] = tfidf
 
@@ -69,6 +81,7 @@ def generate_index(file_directory):
 
     return inverted_index, file_properties, index_map
 
+# Function to get the relevant documents
 def get_relevant_documents(relevances):
     documents = []
     for document in relevances:
@@ -76,6 +89,7 @@ def get_relevant_documents(relevances):
             documents.append(document)
     return documents
 
+# Function to get the sorted relevant documents
 def get_sorted_relevant_documents(relevances):
     sorted_documents = list(relevances.items())
     sorted_documents.sort(key=lambda x: x[1], reverse=True)
@@ -85,6 +99,7 @@ def get_sorted_relevant_documents(relevances):
             documents.append(document[0])
     return documents
 
+# Function to query the inverted index
 def query_single(query, file_properties, inverted_index):
     relevances = {}
     if query not in inverted_index:
@@ -97,6 +112,7 @@ def query_single(query, file_properties, inverted_index):
         relevances[file_name] = relevance
     return get_relevant_documents(relevances)
 
+# Function to query the inverted index using vector space model
 def query_vector(query, file_properties, inverted_index):
     queries = query.split(' ')
     relevances = {file_name: 0 for file_name in file_properties}
@@ -111,6 +127,7 @@ def query_vector(query, file_properties, inverted_index):
     print(relevances)
     return get_sorted_relevant_documents(relevances)
 
+# Function to query the inverted index using AND operator
 def query_and(query, file_properties, inverted_index):
     queries = query.split(' and ')
     relevances = {file_name: 0 for file_name in file_properties}
@@ -132,6 +149,7 @@ def query_and(query, file_properties, inverted_index):
         relevances[file_name] = relevance
     return get_relevant_documents(relevances)
 
+# Function to query the inverted index using BUT operator
 def query_but(query, file_properties, inverted_index):
     query1, query2 = query.split(' but ')
     data = inverted_index[query1]
@@ -147,6 +165,7 @@ def query_but(query, file_properties, inverted_index):
         relevances[file_name] = relevance
     return get_relevant_documents(relevances)
 
+# Function to query the inverted index using OR operator
 def query_or(query, file_properties, inverted_index):
     queries = query.split(' or ')
     documents = []
@@ -154,12 +173,14 @@ def query_or(query, file_properties, inverted_index):
         documents += query_single(word, file_properties, inverted_index)
     return list(set(documents))
 
+# Function to query the inverted index using phrasal search
 def query_phrasal(query, file_properties, inverted_index):
     queries = query.strip('"').split(' ')
     if len(queries) == 1:
         return query_single(queries[0], file_properties, inverted_index)
-    if queries[0] not in inverted_index:
-        return []
+    for query in queries:
+        if query not in inverted_index:
+            return []
     data = inverted_index[queries[0]]
     relevances = {file_name: 0 for file_name in file_properties}
     for file_name in relevances:
@@ -168,6 +189,7 @@ def query_phrasal(query, file_properties, inverted_index):
         doc_vector = file_properties[file_name]['doc_vector']
         tfidf = data[file_name]['tfidf']
         relevance = (1 / math.sqrt(2)) * (1 / math.sqrt(doc_vector)) * tfidf
+        # Get the postings of the first word
         postings = [*data[file_name]['postings']]
         go_next = False
         for i in range(1, len(queries)):
@@ -190,6 +212,7 @@ def query_phrasal(query, file_properties, inverted_index):
 
     return get_relevant_documents(relevances)
 
+# Function to process the queries
 def query(search_key, file_properties, inverted_index):
     documents = []
     if '"' in search_key:
