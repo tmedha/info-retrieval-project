@@ -1,5 +1,6 @@
 env
+*.zip
 Jan
-Jan.zip
+rhf
 .vscode
 __pycache__

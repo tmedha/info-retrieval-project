@@ -4,13 +4,15 @@
 
 from zipfile import ZipFile
 from flask import Flask, render_template, request
+import os
 
 from functions import generate_index, query
 
-with ZipFile('Jan.zip', 'r') as zip:
-    zip.extractall('.')
+if not os.path.exists('rhf'):
+    with ZipFile('rhf.zip', 'r') as zip:
+        zip.extractall('.')
 
-file_directory = 'Jan' 
+file_directory = 'rhf' 
 
 inverted_index, file_properties, index_map = generate_index(file_directory)
 
@@ -28,8 +30,8 @@ inverted_index, file_properties, index_map = generate_index(file_directory)
 #         print('No match.')
 
 app = Flask(__name__,
-            static_url_path='', 
-            static_folder='static'
+            static_url_path='/rhf', 
+            static_folder=file_directory
 )
 
 @app.route("/")

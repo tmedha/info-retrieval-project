@@ -2,14 +2,54 @@ from bs4 import BeautifulSoup
 import re
 import math
 import os
+from pathlib import Path
 
 # Create a set of stopwords
 stopwords = {'a', 'an', 'the', 'of'}
+file_limit = 2000
+
+def get_html_files(file_directory):
+    queue = ['index.html']
+    visited = []
+    visited_urls = []
+
+    while len(queue) > 0 and len(visited) <= file_limit:
+        print(len(visited), 'files spidered.', end='\r')
+        file_name = queue.pop(0)
+        if not(file_name.endswith('.html') or file_name.endswith('.htm')) or file_name.startswith('mailto:'):
+            continue
+        file_path = Path(os.path.join(file_directory, file_name)).resolve()
+        if file_path in visited:
+            continue
+        visited.append(file_path)
+        visited_urls.append(file_name)
+
+        try:
+            with open(file_path) as f:
+                html = f.read()
+                soup = BeautifulSoup(html, 'html.parser')
+                links = []
+                # Extract the links from the text
+                path = '/'.join(file_name.split('/')[:-1])
+                for link in soup.find_all('a', href=True):
+                    root = link['href'].split('/')[0]
+                    if root.endswith('.com') or root.endswith('.org') or root.endswith('.net'):
+                        href = link['href']
+                    else:
+                        href = path + '/' + link['href']
+                    links.append(href)
+                    queue.append(href)
+                # pp(links)
+        except Exception as e:
+            print(e)
+            continue
+    print('Spidering completed.')
+    return visited_urls
 
 # Function to generate the inverted index
 def generate_index(file_directory):
     # Get the list of files in the directory
-    file_list = os.listdir(file_directory)
+    file_list = get_html_files(file_directory)
     total_files = len(file_list)
     index_map = {}
     # Initialize the inverted index and file properties

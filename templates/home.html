@@ -13,7 +13,7 @@
     {% if documents %}
         <ul>
             {% for result in documents %}
-                <li>{{ result }}</li>
+                <li><a href="rhf/{{result}}">{{ result }}</a></li>
             {% endfor %}
         </ul>
     {% endif %}
