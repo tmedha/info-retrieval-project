@@ -235,6 +235,7 @@ def query_phrasal(query, file_properties, inverted_index):
         for i in range(1, len(queries)):
             previous_word = queries[i-1]
             current_word = queries[i]
+            to_remove = []
             if current_word in stopwords or file_name not in inverted_index[current_word]:
                 go_next = True
                 break
@@ -244,7 +245,9 @@ def query_phrasal(query, file_properties, inverted_index):
                 postings[j] += len(previous_word) + 1
             for posting in postings:
                 if posting not in inverted_index[current_word][file_name]['postings']:
-                    postings.remove(posting)
+                    to_remove.append(posting)
+            for p in to_remove:
+                postings.remove(p)
         if go_next:
             continue
         if len(postings) > 0:
