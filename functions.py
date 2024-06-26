@@ -2,19 +2,19 @@ from bs4 import BeautifulSoup
 import re
 import math
 import os
+import pickle
 from pathlib import Path
 
 # Create a set of stopwords
 stopwords = {'a', 'an', 'the', 'of'}
-file_limit = 2000
 
 def get_html_files(file_directory):
     queue = ['index.html']
     visited = []
     visited_urls = []
 
-    while len(queue) > 0 and len(visited) <= file_limit:
-        print(len(visited), 'files spidered.', end='\r')
+    while len(queue) > 0:
+        # print(len(visited), 'files spidered.', end='\r')
         file_name = queue.pop(0)
         if not(file_name.endswith('.html') or file_name.endswith('.htm')) or file_name.startswith('mailto:'):
             continue
@@ -48,6 +48,12 @@ def get_html_files(file_directory):
 
 # Function to generate the inverted index
 def generate_index(file_directory):
+    index_file = 'index.pkl'
+    if os.path.isfile(index_file):
+        with open(index_file, 'rb') as filehandle:
+            inverted_index, file_properties, index_map = pickle.load(filehandle)
+        return inverted_index, file_properties, index_map
+    
     # Get the list of files in the directory
     file_list = get_html_files(file_directory)
     total_files = len(file_list)
@@ -62,38 +68,41 @@ def generate_index(file_directory):
         
         # Read the content of the file
         if os.path.isfile(file_path):
-            with open(file_path, 'r') as file:
-                content = file.read()
-                # Parse the content using BeautifulSoup
-                soup = BeautifulSoup(content, 'html.parser')
-                text = soup.get_text().lower()
-                # Extract the words from the text
-                extracted_strings = re.findall(r'[a-z]+', text)
-                extracted_strings = set(extracted_strings)
-                links = []
-                # Extract the links from the text
-                for link in soup.find_all('a', href=True):
-                    links.append(link['href'])
-                index_map[file_name] = {
-                    "words": extracted_strings,
-                    "links": links
-                }
-                # Iterate through the words
-                for i in re.finditer(r'[a-z\']+', text):
-                    m = i.group()
-                    if m in stopwords:
-                        continue
-                    a, b = i.span()
-                    if m not in inverted_index:
-                        inverted_index[m] = {}
-                    # Update the inverted index
-                    if file_name not in inverted_index[m]:
-                        inverted_index[m][file_name] = {
-                            'freq': 0,
-                            'postings': []
-                        }
-                    inverted_index[m][file_name]['freq'] += 1
-                    inverted_index[m][file_name]['postings'].append(a)
+            try:
+                with open(file_path, 'r') as file:
+                    content = file.read()
+                    # Parse the content using BeautifulSoup
+                    soup = BeautifulSoup(content, 'html.parser')
+                    text = soup.get_text().lower()
+                    # Extract the words from the text
+                    extracted_strings = re.findall(r'[a-z]+', text)
+                    extracted_strings = set(extracted_strings)
+                    links = []
+                    # Extract the links from the text
+                    for link in soup.find_all('a', href=True):
+                        links.append(link['href'])
+                    index_map[file_name] = {
+                        "words": extracted_strings,
+                        "links": links
+                    }
+                    # Iterate through the words
+                    for i in re.finditer(r'[a-z\']+', text):
+                        m = i.group()
+                        if m in stopwords:
+                            continue
+                        a, b = i.span()
+                        if m not in inverted_index:
+                            inverted_index[m] = {}
+                        # Update the inverted index
+                        if file_name not in inverted_index[m]:
+                            inverted_index[m][file_name] = {
+                                'freq': 0,
+                                'postings': []
+                            }
+                        inverted_index[m][file_name]['freq'] += 1
+                        inverted_index[m][file_name]['postings'].append(a)
+            except: 
+                continue
 
     for word in inverted_index:
         files = inverted_index[word]
@@ -118,6 +127,10 @@ def generate_index(file_directory):
         for file_name in files:
             tfidf = files[file_name]['tfidf']
             file_properties[file_name]['doc_vector']+= tfidf*tfidf
+    
+    with open(index_file, 'wb') as filehandle:
+        pickle.dump([inverted_index, file_properties, index_map], filehandle, protocol=pickle.HIGHEST_PROTOCOL)
+
 
     return inverted_index, file_properties, index_map
 
@@ -162,9 +175,9 @@ def query_vector(query, file_properties, inverted_index):
         for word in queries:
             if word in inverted_index and file_name in inverted_index[word]:
                 tfidf += inverted_index[word][file_name]['tfidf']
-        relevance = (1 / math.sqrt(2)) * (1 / math.sqrt(doc_vector)) * tfidf
+        relevance = (1 / math.sqrt(2)) * (1 / (math.sqrt(doc_vector)+1)) * tfidf
         relevances[file_name] = relevance
-    print(relevances)
+    # print(relevances)
     return get_sorted_relevant_documents(relevances)
 
 # Function to query the inverted index using AND operator
