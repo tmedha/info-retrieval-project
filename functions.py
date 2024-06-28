@@ -268,20 +268,60 @@ def query_phrasal(query, file_properties, inverted_index):
 
     return get_relevant_documents(relevances)
 
+def get_correlated_documents(queries, documents, file_properties, inverted_index):
+    stop1 = 4
+    stop2 = 3
+    top_documents = documents[:stop1]
+    keywords = []
+    correlations = {}
+    for doc in top_documents:
+        for word in inverted_index:
+            if doc in inverted_index[word]:
+                keywords.append(word)
+    for word1 in queries:
+        if word1 in inverted_index:
+            for word2 in keywords:
+                corr = 0
+                word1_documents = set(inverted_index[word1].keys())
+                word2_documents = set(inverted_index[word2].keys())
+                common_documents = word1_documents & word2_documents
+                for com_d in common_documents:
+                    word1_tfidf = inverted_index[word1][com_d]['tfidf']
+                    word2_tfidf = inverted_index[word2][com_d]['tfidf']
+                    corr += word1_tfidf*word2_tfidf
+                if word2 not in correlations:
+                    correlations[word2] = 0
+                correlations[word2] += corr
+    correlations_list = [{'word': word, 'corr': corr} for word, corr in correlations.items()]
+    correlations_list.sort(reverse=True, key=lambda x: x['corr'])
+    top_correlations = correlations_list[:stop2]
+    top_keywords = [word['word'] for word in top_correlations]
+    now_words = queries + top_keywords
+    reformulated_query = ' '.join(now_words)
+    return query_vector(reformulated_query, file_properties, inverted_index)
+
 # Function to process the queries
 def query(search_key, file_properties, inverted_index):
-    documents = []
     if '"' in search_key:
+        queries = search_key.strip('"').split(' ')
         documents = query_phrasal(search_key, file_properties, inverted_index)
     elif ' and ' in search_key:
+        queries = search_key.split(' and ')
         documents = query_and(search_key, file_properties, inverted_index)
     elif ' but ' in search_key:
+        query1, query2 = search_key.split(' but ')
+        queries = [query1]
         documents = query_but(search_key, file_properties, inverted_index)
     elif ' or ' in search_key:
+        queries = search_key.split(' or ')
         documents = query_or(search_key, file_properties, inverted_index)
     elif ' ' not in search_key:
+        queries = [search_key]
         documents = query_single(search_key, file_properties, inverted_index)
     else:
+        queries = search_key.split(' ')
         documents = query_vector(search_key, file_properties, inverted_index)
+
+    documents2 = get_correlated_documents(queries, documents, file_properties, inverted_index)
     
-    return documents
+    return documents, documents2

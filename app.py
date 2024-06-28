@@ -39,7 +39,7 @@ def home():
     search = request.args.get('search')
     print(search)
     if search:
-        documents = query(search.lower(), file_properties, inverted_index)
-        return render_template('home.html', documents=documents)
+        documents, documents2 = query(search.lower(), file_properties, inverted_index)
+        return render_template('home.html', documents=documents, documents2=documents2)
 
     return render_template('home.html')

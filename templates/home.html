@@ -4,18 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Engine</title>
+    <style>
+        .turquoise {
+            color: turquoise;
+        }
+        .teal {
+            color: teal;
+        }
+    </style>
 </head>
 <body>
     <form> 
         <input type="text" name="search" placeholder="Search">
         <button type="submit">Search</button>
     </form>
-    {% if documents %}
-        <ul>
-            {% for result in documents %}
-                <li><a href="rhf/{{result}}">{{ result }}</a></li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+    <table>
+        <tr valign="top">
+            <td>
+                {% if documents %}
+                    <ul>
+                        {% for result in documents %}
+                            <li><a class="turquoise" href="rhf/{{result}}">{{ result }}</a></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </td>
+            <td>
+                {% if documents2 %}
+                    <ul>
+                        {% for result in documents2 %}
+                            <li><a class='teal' href="rhf/{{result}}">{{ result }}</a></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
