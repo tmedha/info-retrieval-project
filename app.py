@@ -14,7 +14,7 @@ if not os.path.exists('rhf'):
 
 file_directory = 'rhf' 
 
-inverted_index, file_properties, index_map = generate_index(file_directory)
+inverted_index, file_properties, index_map, document_map = generate_index(file_directory)
 
 # while True:
 #     search_key = input('Enter a search key=> ').strip().lower()
@@ -39,7 +39,7 @@ def home():
     search = request.args.get('search')
     print(search)
     if search:
-        documents, documents2 = query(search.lower(), file_properties, inverted_index)
+        documents, documents2 = query(search.lower(), file_properties, inverted_index, document_map)
         return render_template('home.html', documents=documents, documents2=documents2)
 
     return render_template('home.html')

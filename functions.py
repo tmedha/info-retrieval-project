@@ -4,6 +4,7 @@ import math
 import os
 import pickle
 from pathlib import Path
+# from pprint import pprint as pp
 
 # Create a set of stopwords
 stopwords = {'a', 'an', 'the', 'of'}
@@ -51,13 +52,14 @@ def generate_index(file_directory):
     index_file = 'index.pkl'
     if os.path.isfile(index_file):
         with open(index_file, 'rb') as filehandle:
-            inverted_index, file_properties, index_map = pickle.load(filehandle)
-        return inverted_index, file_properties, index_map
+            inverted_index, file_properties, index_map, document_map = pickle.load(filehandle)
+        return inverted_index, file_properties, index_map, document_map
     
     # Get the list of files in the directory
     file_list = get_html_files(file_directory)
     total_files = len(file_list)
     index_map = {}
+    document_map = {}
     # Initialize the inverted index and file properties
     inverted_index = {}
     file_properties = {file_name: {'max_freq': 0, 'doc_vector': 0} for file_name in file_list}
@@ -128,11 +130,18 @@ def generate_index(file_directory):
             tfidf = files[file_name]['tfidf']
             file_properties[file_name]['doc_vector']+= tfidf*tfidf
     
+    for word in inverted_index:
+        files = inverted_index[word]
+        for file_name in files:
+            if file_name not in document_map:
+                document_map[file_name] = {}
+            document_map[file_name][word] = files[file_name]['tfidf']
+    
     with open(index_file, 'wb') as filehandle:
-        pickle.dump([inverted_index, file_properties, index_map], filehandle, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump([inverted_index, file_properties, index_map, document_map], filehandle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-    return inverted_index, file_properties, index_map
+    return inverted_index, file_properties, index_map, document_map
 
 # Function to get the relevant documents
 def get_relevant_documents(relevances):
@@ -268,9 +277,12 @@ def query_phrasal(query, file_properties, inverted_index):
 
     return get_relevant_documents(relevances)
 
-def get_correlated_documents(queries, documents, file_properties, inverted_index):
+def get_correlated_documents(queries, documents, file_properties, inverted_index, document_map):
     stop1 = 4
     stop2 = 3
+    stop3 = 100
+    stop4 = 5
+    stop5 = 50
     top_documents = documents[:stop1]
     keywords = []
     correlations = {}
@@ -298,10 +310,27 @@ def get_correlated_documents(queries, documents, file_properties, inverted_index
     top_keywords = [word['word'] for word in top_correlations]
     now_words = queries + top_keywords
     reformulated_query = ' '.join(now_words)
-    return query_vector(reformulated_query, file_properties, inverted_index)
+    related_documents = query_vector(reformulated_query, file_properties, inverted_index)[:stop3]
+    doc_correlations = {}
+    for doc1 in documents[:stop4]:
+        for doc2 in related_documents:
+            if doc1 == doc2:
+                continue
+            if doc2 not in doc_correlations:
+                doc_correlations[doc2] = 0
+            doc1_words = set(document_map[doc1].keys())
+            doc2_words = set(document_map[doc2].keys())
+            common_words = doc1_words & doc2_words
+            for word in common_words:
+                doc_correlations[doc2] += document_map[doc1][word]*document_map[doc2][word]
+    doc_correlations_list = [{'doc': doc, 'corr': corr} for doc, corr in doc_correlations.items()]
+    doc_correlations_list.sort(reverse=True, key=lambda x: x['corr'])
+    top_doc_correlations = doc_correlations_list[:stop5]
+    top_docs = [doc['doc'] for doc in top_doc_correlations]
+    return top_docs
 
 # Function to process the queries
-def query(search_key, file_properties, inverted_index):
+def query(search_key, file_properties, inverted_index, document_map):
     if '"' in search_key:
         queries = search_key.strip('"').split(' ')
         documents = query_phrasal(search_key, file_properties, inverted_index)
@@ -322,6 +351,6 @@ def query(search_key, file_properties, inverted_index):
         queries = search_key.split(' ')
         documents = query_vector(search_key, file_properties, inverted_index)
 
-    documents2 = get_correlated_documents(queries, documents, file_properties, inverted_index)
+    documents2 = get_correlated_documents(queries, documents, file_properties, inverted_index, document_map)
     
     return documents, documents2
