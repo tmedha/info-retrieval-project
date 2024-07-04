@@ -214,6 +214,8 @@ def query_and(query, file_properties, inverted_index):
 # Function to query the inverted index using BUT operator
 def query_but(query, file_properties, inverted_index):
     query1, query2 = query.split(' but ')
+    if query1 not in inverted_index:
+        return []
     data = inverted_index[query1]
     relevances = {file_name: 0 for file_name in file_properties}
     for file_name in relevances:
